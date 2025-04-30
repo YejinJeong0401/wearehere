@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useCharacters } from '../context/CharacterContext';
 import logo from '../assets/logo.png';
 
+const statusData = JSON.parse(localStorage.getItem('characterStatusData') || '{}'); //정보 연동 갱신
+
 export default function List() {
   const { characters, addCharacter } = useCharacters();
   const navigate = useNavigate();
@@ -166,7 +168,18 @@ export default function List() {
           </thead>
           <tbody>
             {editedRows.map((char, i) => (
-              <tr key={i}>
+              <tr key={i} style={{
+                backgroundColor:
+                  statusData[char.name]?.state === '사망' ? '#000' :
+                  statusData[char.name]?.state === '좀비' ? '#6e2e2e' :
+                  statusData[char.name]?.state === '감염' ? '#ffe0e0' :
+                  '#fff',
+                color:
+                  statusData[char.name]?.state === '사망' ? '#fff' :
+                  statusData[char.name]?.state === '좀비' ? '#fff' :
+                  '#000'
+              }}>
+              
                 <td style={td}>{i + 1}</td>
                 {['name', 'age', 'gender', 'job', 'skill'].map((field, j) => (
                   <td key={j} style={td}>
