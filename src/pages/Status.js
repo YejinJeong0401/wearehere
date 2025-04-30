@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacters } from '../context/CharacterContext';
@@ -39,6 +40,7 @@ export default function Status() {
   const getRowStyle = (state) => {
     if (state === '사망') return { background: '#e0e0e0', color: '#666' };
     if (state === '좀비') return { background: '#ffe0e0', color: '#a00' };
+    if (state === '감염') return { background: '#fff8dc', color: '#aa6600' };
     return { background: '#fff', color: '#000' };
   };
 
@@ -96,8 +98,9 @@ export default function Status() {
               onChange={e => updateStatus(char.name, 'state', e.target.value)}
             >
               <option value="생존">생존</option>
-              <option value="사망">사망</option>
+              <option value="감염">감염</option>
               <option value="좀비">좀비</option>
+              <option value="사망">사망</option>
             </select>
 
             <input
@@ -110,7 +113,7 @@ export default function Status() {
 
             <input
               type="text"
-              placeholder="건강 상태"
+              placeholder="건강 상태 이상"
               value={status.health}
               onChange={e => updateStatus(char.name, 'health', e.target.value)}
               style={{ flex: 1, minWidth: 120 }}
