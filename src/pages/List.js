@@ -1,12 +1,13 @@
+// List.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacters } from '../context/CharacterContext';
 import logo from '../assets/logo.png';
 
-const statusData = JSON.parse(localStorage.getItem('characterStatusData') || '{}'); //정보 연동 갱신
+const statusData = JSON.parse(localStorage.getItem('characterStatusData') || '{}');
 
 export default function List() {
-  const { characters, addCharacter } = useCharacters();
+  const { characters, addCharacter, updateCharacters, deleteCharacter } = useCharacters();
   const navigate = useNavigate();
 
   const statLabels = ['근력', '민첩', '지능', '행운', '특기', '정신력'];
@@ -52,6 +53,9 @@ export default function List() {
   };
 
   const handleEditToggle = () => {
+    if (isEditing) {
+      updateCharacters(editedRows);
+    }
     setIsEditing(!isEditing);
   };
 
@@ -73,51 +77,20 @@ export default function List() {
     setEditedRows(updated);
   };
 
-  const handleSave = () => {
-    // 저장 로직을 context에 추가하면 여기에 적용
-    setIsEditing(false);
-  };
-
   const handleDelete = (index) => {
-    const updated = [...editedRows];
-    updated.splice(index, 1);
-    setEditedRows(updated);
+    deleteCharacter(index);
   };
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#f0f4f8', padding: '20px' }}>
       <img src={logo} alt="로고" onClick={() => navigate('/')} style={{ position: 'absolute', top: 20, left: 20, width: 80, cursor: 'pointer' }} />
 
-      {/* 메뉴 */}
-      <div style={{
-        display: 'flex',
-        gap: 10,
-        marginTop: 100,
-        marginBottom: 20,
-        justifyContent: 'center'
-      }}>
-        {[
-          { path: '/list', label: '명단' },
-          { path: '/status', label: '상태' },
-          { path: '/dice', label: '다이스' },
-          { path: '/battle', label: '전투' }
-        ].map(i => (
-          <button key={i.path}
-            onClick={() => navigate(i.path)}
-            style={{
-              flex: 1,
-              padding: '10px 0',
-              backgroundColor: i.path === '/list' ? '#004080' : '#fff',
-              color: i.path === '/list' ? '#fff' : '#004080',
-              border: '1px solid #004080',
-              borderRadius: 6,
-              cursor: 'pointer'
-            }}
-          >{i.label}</button>
+      <div style={{ display: 'flex', gap: 10, marginTop: 100, marginBottom: 20, justifyContent: 'center' }}>
+        {[{ path: '/list', label: '명단' }, { path: '/status', label: '상태' }, { path: '/dice', label: '다이스' }, { path: '/battle', label: '전투' }].map(i => (
+          <button key={i.path} onClick={() => navigate(i.path)} style={{ flex: 1, padding: '10px 0', backgroundColor: i.path === '/list' ? '#004080' : '#fff', color: i.path === '/list' ? '#fff' : '#004080', border: '1px solid #004080', borderRadius: 6, cursor: 'pointer' }}>{i.label}</button>
         ))}
       </div>
 
-      {/* 추가 폼 */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
         <input placeholder="이름" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={inputStyle} />
         <input placeholder="나이" type="number" value={form.age} onChange={e => setForm({ ...form, age: Number(e.target.value) })} style={inputStyle} />
@@ -138,14 +111,12 @@ export default function List() {
         <button onClick={handleAddCharacter} style={buttonStyle}>추가</button>
       </div>
 
-      {/* 수정/저장 버튼 */}
       <div style={{ textAlign: 'center', marginBottom: 10 }}>
         <button onClick={handleEditToggle} style={buttonStyle}>
           {isEditing ? '저장' : '수정'}
         </button>
       </div>
 
-      {/* 캐릭터 테이블 */}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <thead>
@@ -179,7 +150,6 @@ export default function List() {
                   statusData[char.name]?.state === '좀비' ? '#fff' :
                   '#000'
               }}>
-              
                 <td style={td}>{i + 1}</td>
                 {['name', 'age', 'gender', 'job', 'skill'].map((field, j) => (
                   <td key={j} style={td}>
@@ -216,7 +186,6 @@ export default function List() {
   );
 }
 
-// 스타일
 const inputStyle = {
   padding: '10px',
   borderRadius: '5px',

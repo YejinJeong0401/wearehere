@@ -1,8 +1,10 @@
-
+// Status.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacters } from '../context/CharacterContext';
 import logo from '../assets/logo.png';
+import { db } from '../firebase';
+import { ref, onValue, set } from 'firebase/database';
 
 export default function Status() {
   const { characters } = useCharacters();
@@ -10,31 +12,27 @@ export default function Status() {
 
   const [statuses, setStatuses] = useState({});
 
+  // 상태 정보를 Firebase에서 가져오기
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('characterStatusData') || '{}');
-    const initialStatuses = {};
-    characters.forEach(c => {
-      initialStatuses[c.name] = saved[c.name] || {
-        state: '생존',
-        wound: '',
-        health: '',
-      };
+    const statusRef = ref(db, 'characterStatuses');
+    const unsubscribe = onValue(statusRef, (snapshot) => {
+      const data = snapshot.val();
+      setStatuses(data || {});
     });
-    setStatuses(initialStatuses);
-  }, [characters]);
+    return () => unsubscribe();
+  }, []);
 
-  useEffect(() => {
-    localStorage.setItem('characterStatusData', JSON.stringify(statuses));
-  }, [statuses]);
-
+  // Firebase에 상태 저장
   const updateStatus = (name, field, value) => {
-    setStatuses(prev => ({
-      ...prev,
+    const updated = {
+      ...statuses,
       [name]: {
-        ...prev[name],
+        ...statuses[name],
         [field]: value,
       },
-    }));
+    };
+    setStatuses(updated);
+    set(ref(db, 'characterStatuses'), updated);
   };
 
   const getRowStyle = (state) => {
@@ -48,12 +46,7 @@ export default function Status() {
     <div style={{ padding: 20, background: '#f0f4f8', minHeight: '100vh' }}>
       <img src={logo} alt="로고" onClick={() => navigate('/')} style={{ width: 80, cursor: 'pointer', marginBottom: 20 }} />
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-        {[
-          { path: '/list', label: '명단' },
-          { path: '/status', label: '상태' },
-          { path: '/dice', label: '다이스' },
-          { path: '/battle', label: '전투' },
-        ].map(({ path, label }) => (
+        {[{ path: '/list', label: '명단' }, { path: '/status', label: '상태' }, { path: '/dice', label: '다이스' }, { path: '/battle', label: '전투' }].map(({ path, label }) => (
           <button
             key={path}
             onClick={() => navigate(path)}
@@ -106,7 +99,7 @@ export default function Status() {
             <input
               type="text"
               placeholder="부상 내용"
-              value={status.wound}
+              value={status.wound || ''}
               onChange={e => updateStatus(char.name, 'wound', e.target.value)}
               style={{ flex: 1, minWidth: 120 }}
             />
@@ -114,7 +107,7 @@ export default function Status() {
             <input
               type="text"
               placeholder="건강 상태 이상"
-              value={status.health}
+              value={status.health || ''}
               onChange={e => updateStatus(char.name, 'health', e.target.value)}
               style={{ flex: 1, minWidth: 120 }}
             />
