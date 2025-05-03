@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCharacters } from '../context/CharacterContext';
 import logo from '../assets/logo.png';
 
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6i7oQ166WPTASd3OnDP0PlZMOTI1os46w3y6KkeesRNhBBc_7i546vEmwq73Boykd/exec://script.google.com/macros/s/AKfycbzwtTpcriU54u69EYL_0Hzngi1PXYsuPIkNqixcpRfXqgsG4levFELtj2NtdMGICSCy/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/https://script.google.com/macros/s/AKfycbxNu_5w-5iWb8SMp5tzK3U7X2yDtJkDzdhD0Ut5OmNniaThuFLCA_29ghDsrvp8Bakj/exec/exec://script.google.com/macros/s/AKfycbzwtTpcriU54u69EYL_0Hzngi1PXYsuPIkNqixcpRfXqgsG4levFELtj2NtdMGICSCy/exec';
 
 const statusData = JSON.parse(localStorage.getItem('characterStatusData') || '{}');
 
