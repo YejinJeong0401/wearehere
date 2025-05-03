@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useCharacters } from '../context/CharacterContext';
 import logo from '../assets/logo.png';
 
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6i7oQ166WPTASd3OnDP0PlZMOTI1os46w3y6KkeesRNhBBc_7i546vEmwq73Boykd/exec://script.google.com/macros/s/AKfycbzwtTpcriU54u69EYL_0Hzngi1PXYsuPIkNqixcpRfXqgsG4levFELtj2NtdMGICSCy/exec';
+
 const statusData = JSON.parse(localStorage.getItem('characterStatusData') || '{}');
 
 export default function List() {
@@ -28,6 +30,23 @@ export default function List() {
 
   useEffect(() => {
     setEditedRows(characters);
+  }, [characters]);
+
+  useEffect(() => {
+    const formattedData = characters.map(c => [
+      c.name, c.age, c.gender, c.job, c.skill,
+      ...c.stats,
+      c.stack.wound, c.stack.attention, c.stack.infection
+    ]);
+
+    if (formattedData.length > 0) {
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formattedData)
+      });
+    }
   }, [characters]);
 
   const handleAddCharacter = () => {
@@ -121,7 +140,6 @@ export default function List() {
         <table style={{ borderCollapse: 'collapse', width: '100%', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <thead>
             <tr>
-              <th rowSpan={2} style={th}>번호</th>
               <th rowSpan={2} style={th}>이름</th>
               <th rowSpan={2} style={th}>나이</th>
               <th rowSpan={2} style={th}>성별</th>
@@ -150,7 +168,6 @@ export default function List() {
                   statusData[char.name]?.state === '좀비' ? '#fff' :
                   '#000'
               }}>
-                <td style={td}>{i + 1}</td>
                 {['name', 'age', 'gender', 'job', 'skill'].map((field, j) => (
                   <td key={j} style={td}>
                     {isEditing ? (
