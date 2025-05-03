@@ -1,4 +1,3 @@
-// List.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacters } from '../context/CharacterContext';
@@ -31,19 +30,30 @@ export default function List() {
   }, [characters]);
 
   useEffect(() => {
-    const formattedData = characters.map(c => [
-      c.name, c.age, c.gender, c.job, c.skill,
-      ...c.stats,
-      c.stack.wound, c.stack.attention, c.stack.infection
-    ]);
+    const sendDataToSheet = async () => {
+      try {
+        const formattedData = characters.map(c => [
+          c.name, c.age, c.gender, c.job, c.skill,
+          ...c.stats,
+          c.stack.wound, c.stack.attention, c.stack.infection
+        ]);
 
-    if (formattedData.length > 0) {
-      fetch('https://script.google.com/macros/s/AKfycbxY5PloWGm1vf0quURnF1wrX9RwgugBE9UFiN92nKDNXcrE_gO4PTJFl7HNtS42Emmm/exec', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formattedData)
-      });
-    }
+        if (formattedData.length > 0) {
+          const res = await fetch('https://script.google.com/macros/s/AKfycbytKZXF-Wz79rF3rNfWLkhPWlVGZOHTfV7bOJ9stkR0RlqQGbyOEALGGuwUnQBrgREO/exec', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: formattedData }) // 구조 수정됨
+          });
+
+          const text = await res.text();
+          console.log('✅ 응답:', text);
+        }
+      } catch (err) {
+        console.error('❌ 전송 에러:', err);
+      }
+    };
+
+    sendDataToSheet();
   }, [characters]);
 
   const handleAddCharacter = () => {
