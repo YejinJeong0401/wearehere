@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { useCharacters } from '../context/CharacterContext';
 import logo from '../assets/logo.png';
 
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNu_5w-5iWb8SMp5tzK3U7X2yDtJkDzdhD0Ut5OmNniaThuFLCA_29ghDsrvp8Bakj/exec';
-
 const statusData = JSON.parse(localStorage.getItem('characterStatusData') || '{}');
 
 export default function List() {
@@ -40,7 +38,7 @@ export default function List() {
     ]);
 
     if (formattedData.length > 0) {
-      fetch(GOOGLE_SCRIPT_URL, {
+      fetch('https://script.google.com/macros/s/AKfycbxY5PloWGm1vf0quURnF1wrX9RwgugBE9UFiN92nKDNXcrE_gO4PTJFl7HNtS42Emmm/exec', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formattedData)
