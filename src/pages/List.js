@@ -39,7 +39,7 @@ export default function List() {
         ]);
 
         if (formattedData.length > 0) {
-          const res = await fetch('https://script.google.com/macros/s/AKfycbytKZXF-Wz79rF3rNfWLkhPWlVGZOHTfV7bOJ9stkR0RlqQGbyOEALGGuwUnQBrgREO/exec', {
+          const res = await fetch('https://script.google.com/macros/s/AKfycbyMpelIANB7KaX-KjuRFTSiorXjRTBGghcptDTuP_O8HTv_VxESRJtpdWHWhxLBMIuB/exec', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ data: formattedData }) // 구조 수정됨
