@@ -37,14 +37,17 @@ export default function List() {
           ...c.stats,
           c.stack.wound, c.stack.attention, c.stack.infection
         ]);
-
+  
         if (formattedData.length > 0) {
-          const res = await fetch('https://script.google.com/macros/s/AKfycbyMpelIANB7KaX-KjuRFTSiorXjRTBGghcptDTuP_O8HTv_VxESRJtpdWHWhxLBMIuB/exec', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: formattedData }) // 구조 수정됨
-          });
-
+          const res = await fetch(
+            'https://script.google.com/macros/s/AKfycbxgJ3tSk9oTT2Ii4DXAxe9lGdoCa1IXDY-VGAdbHTtWyk_Vx4z5xeoF36Wv6E-60FbJ/exec',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(formattedData) // ← 감싸지 않고 바로 전송
+            }
+          );
+  
           const text = await res.text();
           console.log('✅ 응답:', text);
         }
@@ -52,9 +55,10 @@ export default function List() {
         console.error('❌ 전송 에러:', err);
       }
     };
-
+  
     sendDataToSheet();
   }, [characters]);
+  
 
   const handleAddCharacter = () => {
     if (
