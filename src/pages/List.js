@@ -40,7 +40,7 @@ export default function List() {
   
         if (formattedData.length > 0) {
           const res = await fetch(
-            'https://script.google.com/macros/s/AKfycbxgJ3tSk9oTT2Ii4DXAxe9lGdoCa1IXDY-VGAdbHTtWyk_Vx4z5xeoF36Wv6E-60FbJ/exec',
+            'https://script.google.com/macros/s/AKfycbwTQ_MtLxELzccMk_Elrz9QAG-4gQwkKJb5lj0oZ4xZXr7oIn9RqyeeVchtpI3H2U8e/exec',
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
