@@ -29,36 +29,28 @@ export default function List() {
     setEditedRows(characters);
   }, [characters]);
 
-  useEffect(() => {
-    const sendDataToSheet = async () => {
-      try {
-        const formattedData = characters.map(c => [
-          c.name, c.age, c.gender, c.job, c.skill,
-          ...c.stats,
-          c.stack.wound, c.stack.attention, c.stack.infection
-        ]);
-  
-        if (formattedData.length > 0) {
-          const res = await fetch(
-            'https://script.google.com/macros/s/AKfycbwTQ_MtLxELzccMk_Elrz9QAG-4gQwkKJb5lj0oZ4xZXr7oIn9RqyeeVchtpI3H2U8e/exec',
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(formattedData) // ← 감싸지 않고 바로 전송
-            }
-          );
-  
-          const text = await res.text();
-          console.log('✅ 응답:', text);
-        }
-      } catch (err) {
-        console.error('❌ 전송 에러:', err);
+  const uploadToSheet = async (data) => {
+    try {
+      const formattedData = data.map(c => [
+        c.name, c.age, c.gender, c.job, c.skill,
+        ...c.stats,
+        c.stack.wound, c.stack.attention, c.stack.infection
+      ]);
+
+      if (formattedData.length > 0) {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formattedData),
+        });
+
+        const result = await res.json();
+        console.log('✅ 응답:', result.message);
       }
-    };
-  
-    sendDataToSheet();
-  }, [characters]);
-  
+    } catch (err) {
+      console.error('❌ 업로드 실패:', err);
+    }
+  };
 
   const handleAddCharacter = () => {
     if (
@@ -82,9 +74,10 @@ export default function List() {
     }
   };
 
-  const handleEditToggle = () => {
+  const handleEditToggle = async () => {
     if (isEditing) {
       updateCharacters(editedRows);
+      await uploadToSheet(editedRows); // 저장 누를 때 전송
     }
     setIsEditing(!isEditing);
   };

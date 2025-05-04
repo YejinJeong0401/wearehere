@@ -1,4 +1,4 @@
-// 개선된 Battle.js
+// Battle.js
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacters } from '../context/CharacterContext';
@@ -35,11 +35,21 @@ export default function Battle() {
                 stack: 0,
                 isKnockedOut: false,
                 isDisabled: false,
+                attackSuccessMap: {},
               }
             ]
           }
         : b
     ));
+  };
+
+  const deleteParticipant = (battleId, index) => {
+    setBattles(battles.map(b => {
+      if (b.id !== battleId) return b;
+      const updated = [...b.participants];
+      updated.splice(index, 1);
+      return { ...b, participants: updated };
+    }));
   };
 
   const updateParticipant = (battleId, index, field, value) => {
@@ -61,6 +71,12 @@ export default function Battle() {
       updated.forEach((p, index) => {
         if (!p.selectedChar || p.isKnockedOut || p.isDisabled) return;
 
+        if (p.action === '휴식') {
+          p.result = `${p.selectedChar.name}은 휴식 중이다.`;
+          logs.push(p.result);
+          return;
+        }
+
         const statIndex = p.action === '공격' ? 0 : p.action === '회피' ? 1 : 4;
         const statValue = p.selectedChar.stats[statIndex];
         const { dice, outcome } = rollDice(statValue, p.action);
@@ -68,30 +84,32 @@ export default function Battle() {
 
         if (p.action === '공격') {
           p.result = `${p.selectedChar.name} 공격 ${resultText}`;
+          const target = p.targetZombie;
+          if (!p.attackSuccessMap) p.attackSuccessMap = {};
+
           if (outcome === '대성공') {
             p.isKnockedOut = true;
-            if (!b.knockedOutZombies.includes(p.targetZombie)) {
-              b.knockedOutZombies.push(p.targetZombie);
-              logs.push(`🧟 좀비 ${p.targetZombie}이 쓰러졌다!`);
+            if (!b.knockedOutZombies.includes(target)) {
+              b.knockedOutZombies.push(target);
+              logs.push(`🧟 좀비 ${target}이 쓰러졌다!`);
             }
           } else if (outcome === '성공') {
-            p.stack += 1;
-            if (p.stack >= 3 && !b.knockedOutZombies.includes(p.targetZombie)) {
+            p.attackSuccessMap[target] = (p.attackSuccessMap[target] || 0) + 1;
+            if (p.attackSuccessMap[target] >= 3 && !b.knockedOutZombies.includes(target)) {
+              b.knockedOutZombies.push(target);
               p.isKnockedOut = true;
-              b.knockedOutZombies.push(p.targetZombie);
-              logs.push(`🧟 좀비 ${p.targetZombie}이 쓰러졌다!`);
+              logs.push(`🧟 좀비 ${target}이 쓰러졌다!`);
             }
           }
-        }
 
-        if (p.action === '회피') {
+        } else if (p.action === '회피') {
           let damage = 0;
           if (outcome === '실패') {
             damage = Math.ceil(Math.random() * 3);
-            if (++p.stack >= 2) {
+            p.stack += 1;
+            if (p.stack >= 2) {
               const part = getRandomParts();
               logs.push(`☠️ ${p.selectedChar.name} 회피 실패로 물림 판정! [${part}]`);
-              // 제외하지 않고, 수동 체크로 처리
             }
           } else if (outcome === '대실패') {
             damage = 3;
@@ -129,7 +147,6 @@ export default function Battle() {
         return { ...b, logs };
       }
 
-      // 좀비 -> 참가자 그룹핑
       const attacks = {};
       aliveZombies.forEach(zId => {
         const target = aliveParticipants[Math.floor(Math.random() * aliveParticipants.length)];
@@ -208,21 +225,28 @@ export default function Battle() {
                 <select value={p.action} onChange={e => updateParticipant(b.id, i, 'action', e.target.value)}>
                   <option value="공격">공격</option>
                   <option value="회피">회피</option>
-                  <option value="특수">특수</option>
+                  <option value="휴식">휴식</option>
                 </select>
 
-                <select value={p.targetZombie} onChange={e => updateParticipant(b.id, i, 'targetZombie', Number(e.target.value))}>
-                  {Array.from({ length: b.zombies }, (_, zi) => (
-                    <option key={zi + 1} value={zi + 1}>좀비 {zi + 1}</option>
-                  ))}
-                </select>
+                {p.action === '공격' && (
+                  <select value={p.targetZombie} onChange={e => updateParticipant(b.id, i, 'targetZombie', Number(e.target.value))}>
+                    {Array.from({ length: b.zombies }, (_, zi) => (
+                      <option key={zi + 1} value={zi + 1}>좀비 {zi + 1}</option>
+                    ))}
+                  </select>
+                )}
 
                 <label style={{ fontSize: 12 }}>
                   <input type="checkbox" checked={p.isDisabled} onChange={e => updateParticipant(b.id, i, 'isDisabled', e.target.checked)} style={{ marginRight: 5 }} />
                   전투 불능
                 </label>
+
+                <button onClick={() => deleteParticipant(b.id, i)} style={{ fontSize: 12, color: 'red', marginLeft: 5 }}>삭제</button>
               </div>
-              <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{p.selectedChar && `(${p.selectedChar.stats.join('/')})`}</div>
+
+              <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>
+                {p.selectedChar && `(${p.selectedChar.stats.join('/')})`}
+              </div>
               <div><span>{p.result}</span></div>
             </div>
           ))}
