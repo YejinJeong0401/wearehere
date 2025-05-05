@@ -11,15 +11,18 @@ export default function Battle() {
   const [battles, setBattles] = useState([]);
 
   const createBattle = () => {
-    setBattles([...battles, {
-      id: Date.now(),
-      participants: [],
-      logs: [],
-      zombies: 0,
-      knockedOutZombies: [],
-      zombieHitCounts: {},
-      turn: 1,
-    }]);
+    setBattles([
+      ...battles,
+      {
+        id: Date.now(),
+        participants: [],
+        logs: [],
+        zombies: 0,
+        knockedOutZombies: [],
+        zombieHitCounts: {},
+        turn: 1,
+      },
+    ]);
   };
 
   const addParticipant = (battleId) => {
@@ -38,8 +41,8 @@ export default function Battle() {
                 isKnockedOut: false,
                 isDisabled: false,
                 attackSuccessMap: {},
-              }
-            ]
+              },
+            ],
           }
         : b
     ));
@@ -73,6 +76,7 @@ export default function Battle() {
 
       const updated = [...b.participants];
       const zombieHitCounts = { ...b.zombieHitCounts };
+      const knockedOutZombies = [...b.knockedOutZombies];
 
       updated.forEach((p) => {
         if (!p.selectedChar || p.isKnockedOut || p.isDisabled) return;
@@ -83,7 +87,11 @@ export default function Battle() {
           return;
         }
 
-        const statIndex = p.action === '공격' ? 0 : p.action === '회피' ? 1 : 4;
+        const statIndex =
+          p.action === '공격' ? 0 :
+          p.action === '회피' ? 1 :
+          p.action === '특기' ? 4 : 0;
+
         const statValue = p.selectedChar.stats[statIndex];
         const { dice, outcome } = rollDice(statValue, p.action);
         let resultText = `[${dice}/${outcome}]`;
@@ -95,21 +103,20 @@ export default function Battle() {
 
           if (outcome === '대성공') {
             p.isKnockedOut = true;
-            if (!b.knockedOutZombies.includes(target)) {
-              b.knockedOutZombies.push(target);
+            if (!knockedOutZombies.includes(target)) {
+              knockedOutZombies.push(target);
               logs.push(`🧟 좀비 ${target}이 쓰러졌다!`);
             }
             zombieHitCounts[target] = (zombieHitCounts[target] || 0) + 1;
           } else if (outcome === '성공') {
             p.attackSuccessMap[target] = (p.attackSuccessMap[target] || 0) + 1;
             zombieHitCounts[target] = (zombieHitCounts[target] || 0) + 1;
-            if (p.attackSuccessMap[target] >= 3 && !b.knockedOutZombies.includes(target)) {
-              b.knockedOutZombies.push(target);
+            if (p.attackSuccessMap[target] >= 3 && !knockedOutZombies.includes(target)) {
+              knockedOutZombies.push(target);
               p.isKnockedOut = true;
               logs.push(`🧟 좀비 ${target}이 쓰러졌다!`);
             }
           }
-
         } else if (p.action === '회피') {
           let damage = 0;
           if (outcome === '실패') {
@@ -128,6 +135,8 @@ export default function Battle() {
           }
           resultText += ` ${damage}`;
           p.result = `${p.selectedChar.name} 회피 ${resultText}`;
+        } else if (p.action === '특기') {
+          p.result = `${p.selectedChar.name} 특기 판정 ${resultText}`;
         }
 
         logs.push(p.result);
@@ -138,7 +147,8 @@ export default function Battle() {
         participants: updated,
         logs,
         zombieHitCounts,
-        turn: b.turn + 1
+        knockedOutZombies,
+        turn: b.turn + 1,
       };
     }));
   };
@@ -151,7 +161,7 @@ export default function Battle() {
             zombies: count,
             zombieHitCounts: Object.fromEntries(
               Array.from({ length: count }, (_, i) => [i + 1, b.zombieHitCounts[i + 1] || 0])
-            )
+            ),
           }
         : b
     ));
@@ -211,16 +221,23 @@ export default function Battle() {
       <img src={logo} alt="로고" onClick={() => navigate('/')} style={{ width: 80, cursor: 'pointer', marginBottom: 20 }} />
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-        {[{ path: '/list', label: '명단' }, { path: '/status', label: '상태' }, { path: '/dice', label: '다이스' }, { path: '/battle', label: '전투' }].map(({ path, label }) => (
+        {[
+          { path: '/list', label: '명단' },
+          { path: '/status', label: '상태' },
+          { path: '/dice', label: '다이스' },
+          { path: '/battle', label: '전투' },
+        ].map(({ path, label }) => (
           <button
             key={path}
             onClick={() => navigate(path)}
             style={{
-              padding: '10px 0', flex: 1,
+              padding: '10px 0',
+              flex: 1,
               backgroundColor: path === '/battle' ? '#004080' : '#fff',
               color: path === '/battle' ? '#fff' : '#004080',
-              border: '1px solid #004080', borderRadius: 6,
-              cursor: 'pointer'
+              border: '1px solid #004080',
+              borderRadius: 6,
+              cursor: 'pointer',
             }}
           >
             {label}
@@ -228,19 +245,33 @@ export default function Battle() {
         ))}
       </div>
 
-      <button onClick={createBattle} style={{ background: '#004080', color: '#fff', padding: '10px 20px', marginBottom: 20 }}>+ 새 전투 생성</button>
+      <button onClick={createBattle} style={{ background: '#004080', color: '#fff', padding: '10px 20px', marginBottom: 20 }}>
+        + 새 전투 생성
+      </button>
 
       {battles.map(b => (
         <div key={b.id} style={{ background: '#fff', padding: 20, marginBottom: 30, borderRadius: 8, boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
           <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between' }}>
             <div>
-              <strong>턴: {b.turn}</strong> | 좀비 수:
-              <input type="number" min={1} value={b.zombies} onChange={e => handleZombieCountChange(b.id, Number(e.target.value))} style={{ width: 60, marginLeft: 10 }} />
-              <button onClick={() => handleZombieTurn(b.id)} style={{ marginLeft: 10, padding: '5px 10px', background: '#333', color: '#fff', borderRadius: 4 }}>🧟 좀비 턴</button>
+              <strong>턴: {b.turn}</strong> | 전체 좀비 수:
+              <input
+                type="number"
+                min={1}
+                value={b.zombies}
+                onChange={e => handleZombieCountChange(b.id, Number(e.target.value))}
+                style={{ width: 60, marginLeft: 10 }}
+              />
+              <button onClick={() => handleZombieTurn(b.id)} style={{ marginLeft: 10, padding: '5px 10px', background: '#333', color: '#fff', borderRadius: 4 }}>
+                🧟 좀비 턴
+              </button>
             </div>
             <div>
-              <button onClick={() => resetBattle(b.id)} style={{ background: 'orange', marginRight: 10, color: '#fff' }}>♻️ 초기화</button>
-              <button onClick={() => deleteBattle(b.id)} style={{ background: 'red', color: '#fff' }}>✖ 삭제</button>
+              <button onClick={() => resetBattle(b.id)} style={{ background: 'orange', marginRight: 10, color: '#fff' }}>
+                ♻️ 초기화
+              </button>
+              <button onClick={() => deleteBattle(b.id)} style={{ background: 'red', color: '#fff' }}>
+                ✖ 삭제
+              </button>
             </div>
           </div>
 
@@ -256,6 +287,7 @@ export default function Battle() {
                   <option value="공격">공격</option>
                   <option value="회피">회피</option>
                   <option value="휴식">휴식</option>
+                  <option value="특기">특기</option>
                 </select>
 
                 {p.action === '공격' && (
@@ -293,7 +325,8 @@ export default function Battle() {
                 const isDown = b.knockedOutZombies.includes(zId);
                 return (
                   <div key={zId} style={{
-                    background: isDown ? '#ccc' : '#eee',
+                    background: isDown ? '#000' : '#eee',
+                    color: isDown ? '#fff' : '#000',
                     padding: '4px 8px',
                     borderRadius: 4,
                     fontSize: 12
