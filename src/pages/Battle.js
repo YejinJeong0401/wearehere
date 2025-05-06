@@ -88,9 +88,10 @@ export default function Battle() {
         }
 
         const statIndex =
-          p.action === '공격' ? 0 :
-          p.action === '회피' ? 1 :
-          p.action === '특기' ? 4 : 0;
+          p.action === '공격' ? 0 :   // 근력
+          p.action === '회피' ? 1 :   // 민첩
+          p.action === '특기' ? 4 :   // 특기
+          0;
 
         const statValue = p.selectedChar.stats[statIndex];
         const { dice, outcome } = rollDice(statValue, p.action);
@@ -121,10 +122,13 @@ export default function Battle() {
           let damage = 0;
           if (outcome === '실패') {
             damage = Math.ceil(Math.random() * 3);
-            p.stack += 1;
-            if (p.stack >= 2) {
-              const part = getRandomParts();
-              logs.push(`☠️ ${p.selectedChar.name} 회피 실패로 물림 판정! [${part}]`);
+            const luckStat = p.selectedChar.stats[3]; // 행운
+            const luckResult = rollDice(luckStat, '행운');
+            const part = getRandomParts();
+            if (luckResult.outcome === '실패' || luckResult.outcome === '대실패') {
+              logs.push(`☠️ ${p.selectedChar.name} 회피 실패 + 행운 실패로 물림! [${part}]`);
+            } else {
+              logs.push(`😮 ${p.selectedChar.name} 회피 실패했지만 행운으로 피함!`);
             }
           } else if (outcome === '대실패') {
             damage = 3;
@@ -249,100 +253,62 @@ export default function Battle() {
         + 새 전투 생성
       </button>
 
-      {battles.map(b => (
-        <div key={b.id} style={{ background: '#fff', padding: 20, marginBottom: 30, borderRadius: 8, boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-          <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between' }}>
-            <div>
-              <strong>턴: {b.turn}</strong> | 전체 좀비 수:
+      <div>
+        {battles.map(b => (
+          <div key={b.id} style={{ marginBottom: 20, border: '1px solid #ddd', padding: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <h3>전투 {b.id}</h3>
+              <div>
+                <button onClick={() => deleteBattle(b.id)} style={{ background: '#f44336', color: '#fff', padding: '5px 10px' }}>삭제</button>
+                <button onClick={() => resetBattle(b.id)} style={{ background: '#4caf50', color: '#fff', padding: '5px 10px', marginLeft: 10 }}>초기화</button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <label>좀비 수: </label>
               <input
                 type="number"
-                min={1}
                 value={b.zombies}
-                onChange={e => handleZombieCountChange(b.id, Number(e.target.value))}
-                style={{ width: 60, marginLeft: 10 }}
+                onChange={(e) => handleZombieCountChange(b.id, parseInt(e.target.value))}
+                min={0}
+                style={{ width: 50 }}
               />
-              <button onClick={() => handleZombieTurn(b.id)} style={{ marginLeft: 10, padding: '5px 10px', background: '#333', color: '#fff', borderRadius: 4 }}>
-                🧟 좀비 턴
+              <button onClick={() => handleZombieTurn(b.id)} style={{ background: '#ff9800', color: '#fff', padding: '5px 10px', marginLeft: 10 }}>
+                좀비 턴
               </button>
             </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <button onClick={() => addParticipant(b.id)} style={{ background: '#3f51b5', color: '#fff', padding: '5px 10px' }}>
+                참가자 추가
+              </button>
+            </div>
+
             <div>
-              <button onClick={() => resetBattle(b.id)} style={{ background: 'orange', marginRight: 10, color: '#fff' }}>
-                ♻️ 초기화
-              </button>
-              <button onClick={() => deleteBattle(b.id)} style={{ background: 'red', color: '#fff' }}>
-                ✖ 삭제
-              </button>
-            </div>
-          </div>
-
-          {b.participants.map((p, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', marginBottom: 8 }}>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <select value={p.selectedChar?.name || ''} onChange={e => updateParticipant(b.id, i, 'selectedChar', characters.find(c => c.name === e.target.value))}>
-                  <option value="">캐릭터 선택</option>
-                  {characters.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                </select>
-
-                <select value={p.action} onChange={e => updateParticipant(b.id, i, 'action', e.target.value)}>
-                  <option value="공격">공격</option>
-                  <option value="회피">회피</option>
-                  <option value="휴식">휴식</option>
-                  <option value="특기">특기</option>
-                </select>
-
-                {p.action === '공격' && (
-                  <select value={p.targetZombie} onChange={e => updateParticipant(b.id, i, 'targetZombie', Number(e.target.value))}>
-                    {Array.from({ length: b.zombies }, (_, zi) => (
-                      <option key={zi + 1} value={zi + 1}>좀비 {zi + 1}</option>
-                    ))}
-                  </select>
-                )}
-
-                <label style={{ fontSize: 12 }}>
-                  <input type="checkbox" checked={p.isDisabled} onChange={e => updateParticipant(b.id, i, 'isDisabled', e.target.checked)} style={{ marginRight: 5 }} />
-                  전투 불능
-                </label>
-
-                <button onClick={() => deleteParticipant(b.id, i)} style={{ fontSize: 12, color: 'red', marginLeft: 5 }}>삭제</button>
-              </div>
-
-              <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>
-                {p.selectedChar && `(${p.selectedChar.stats.join('/')})`}
-              </div>
-              <div><span>{p.result}</span></div>
-            </div>
-          ))}
-
-          <button onClick={() => addParticipant(b.id)} style={{ background: '#008000', color: '#fff', marginTop: 10, padding: '6px 10px' }}>+ 참가자 추가</button>
-          <button onClick={() => rollAllDice(b.id)} style={{ background: '#333', color: '#fff', marginTop: 10, marginLeft: 10, padding: '6px 10px' }}>🎲 전체 굴리기</button>
-
-          <div style={{ marginTop: 10, padding: 10, background: '#f5f5f5', borderRadius: 6 }}>
-            <strong>🧟 좀비 피격 현황</strong>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 5 }}>
-              {Array.from({ length: b.zombies }, (_, i) => {
-                const zId = i + 1;
-                const hit = b.zombieHitCounts?.[zId] || 0;
-                const isDown = b.knockedOutZombies.includes(zId);
-                return (
-                  <div key={zId} style={{
-                    background: isDown ? '#000' : '#eee',
-                    color: isDown ? '#fff' : '#000',
-                    padding: '4px 8px',
-                    borderRadius: 4,
-                    fontSize: 12
-                  }}>
-                    좀비 {zId}: {hit}회 피격
+              {b.participants.map((p, idx) => (
+                <div key={idx} style={{ marginBottom: 10 }}>
+                  <div>
+                    <label>{p.selectedChar ? p.selectedChar.name : '참가자 없음'}</label>
+                    <button onClick={() => deleteParticipant(b.id, idx)} style={{ background: '#f44336', color: '#fff', padding: '5px 10px', marginLeft: 10 }}>
+                      삭제
+                    </button>
                   </div>
-                );
-              })}
+                  <div>상태: {p.result}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <h4>전투 로그</h4>
+              <ul>
+                {b.logs.map((log, idx) => (
+                  <li key={idx}>{log}</li>
+                ))}
+              </ul>
             </div>
           </div>
-
-          <div style={{ marginTop: 10 }}>
-            {b.logs.map((log, i) => <div key={i}>📝 {log}</div>)}
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
