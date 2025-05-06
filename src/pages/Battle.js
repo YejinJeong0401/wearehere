@@ -1,4 +1,3 @@
-// Battle.js
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacters } from '../context/CharacterContext';
@@ -70,22 +69,13 @@ export default function Battle() {
     setBattles(battles.map(b => {
       if (b.id !== battleId) return b;
 
-      const logs = [...b.logs];
-      logs.push(`⚔ 참가자 턴`);
-      logs.unshift(`🔁 ${b.turn} 턴 시작`);
-
+      const logs = [`🔁 ${b.turn} 턴 시작`, ...b.logs, '⚔ 참가자 턴'];
       const updated = [...b.participants];
       const zombieHitCounts = { ...b.zombieHitCounts };
       const knockedOutZombies = [...b.knockedOutZombies];
 
       updated.forEach((p) => {
         if (!p.selectedChar || p.isKnockedOut || p.isDisabled) return;
-
-        if (p.action === '휴식') {
-          p.result = `${p.selectedChar.name}은 휴식 중이다.`;
-          logs.push(p.result);
-          return;
-        }
 
         const statIndex =
           p.action === '공격' ? 0 :
@@ -118,25 +108,24 @@ export default function Battle() {
             }
           }
         } else if (p.action === '회피') {
-          let damage = 0;
-          if (outcome === '실패') {
-            damage = Math.ceil(Math.random() * 3);
-            p.stack += 1;
-            if (p.stack >= 2) {
+          if (outcome === '실패' || outcome === '대실패') {
+            const luck = p.selectedChar.stats[3]; // 행운
+            const { outcome: luckOutcome } = rollDice(luck, '행운');
+            const isBitten = luckOutcome === '실패' || luckOutcome === '대실패';
+            if (isBitten) {
               const part = getRandomParts();
-              logs.push(`☠️ ${p.selectedChar.name} 회피 실패로 물림 판정! [${part}]`);
+              logs.push(`☠️ ${p.selectedChar.name} 회피 실패 + 행운 실패로 물림 판정! [${part}]`);
+            } else {
+              logs.push(`⚠️ ${p.selectedChar.name} 회피 실패 → 행운으로 물림은 피했다.`);
             }
-          } else if (outcome === '대실패') {
-            damage = 3;
-            const part = getRandomParts();
-            logs.push(`☠️ ${p.selectedChar.name} 대실패! 피해 3 + 물림 판정 [${part}]`);
           } else {
             p.stack = 0;
           }
-          resultText += ` ${damage}`;
           p.result = `${p.selectedChar.name} 회피 ${resultText}`;
         } else if (p.action === '특기') {
           p.result = `${p.selectedChar.name} 특기 판정 ${resultText}`;
+        } else if (p.action === '휴식') {
+          p.result = `${p.selectedChar.name}은 휴식 중이다.`;
         }
 
         logs.push(p.result);
@@ -165,6 +154,25 @@ export default function Battle() {
           }
         : b
     ));
+  };
+
+  const handleZombieHit = (battleId, zombieId) => {
+    setBattles(battles.map(b => {
+      if (b.id !== battleId) return b;
+      const newHitCounts = { ...b.zombieHitCounts };
+      newHitCounts[zombieId] = (newHitCounts[zombieId] || 0) + 1;
+
+      const newKnocked = [...b.knockedOutZombies];
+      if (newHitCounts[zombieId] >= 2 && !newKnocked.includes(zombieId)) {
+        newKnocked.push(zombieId);
+      }
+
+      return {
+        ...b,
+        zombieHitCounts: newHitCounts,
+        knockedOutZombies: newKnocked,
+      };
+    }));
   };
 
   const handleZombieTurn = (battleId) => {
@@ -221,16 +229,9 @@ export default function Battle() {
       <img src={logo} alt="로고" onClick={() => navigate('/')} style={{ width: 80, cursor: 'pointer', marginBottom: 20 }} />
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-        {[
-          { path: '/list', label: '명단' },
-          { path: '/status', label: '상태' },
-          { path: '/dice', label: '다이스' },
-          { path: '/battle', label: '전투' },
-        ].map(({ path, label }) => (
-          <button
-            key={path}
-            onClick={() => navigate(path)}
-            style={{
+        {[{ path: '/list', label: '명단' }, { path: '/status', label: '상태' }, { path: '/dice', label: '다이스' }, { path: '/battle', label: '전투' }]
+          .map(({ path, label }) => (
+            <button key={path} onClick={() => navigate(path)} style={{
               padding: '10px 0',
               flex: 1,
               backgroundColor: path === '/battle' ? '#004080' : '#fff',
@@ -238,10 +239,7 @@ export default function Battle() {
               border: '1px solid #004080',
               borderRadius: 6,
               cursor: 'pointer',
-            }}
-          >
-            {label}
-          </button>
+            }}>{label}</button>
         ))}
       </div>
 
@@ -324,15 +322,21 @@ export default function Battle() {
                 const hit = b.zombieHitCounts?.[zId] || 0;
                 const isDown = b.knockedOutZombies.includes(zId);
                 return (
-                  <div key={zId} style={{
-                    background: isDown ? '#000' : '#eee',
-                    color: isDown ? '#fff' : '#000',
-                    padding: '4px 8px',
-                    borderRadius: 4,
-                    fontSize: 12
-                  }}>
+                  <button
+                    key={zId}
+                    onClick={() => handleZombieHit(b.id, zId)}
+                    style={{
+                      background: isDown ? '#000' : '#eee',
+                      color: isDown ? '#fff' : '#000',
+                      padding: '4px 8px',
+                      borderRadius: 4,
+                      fontSize: 12,
+                      border: '1px solid #ccc',
+                      cursor: 'pointer'
+                    }}
+                  >
                     좀비 {zId}: {hit}회 피격
-                  </div>
+                  </button>
                 );
               })}
             </div>
