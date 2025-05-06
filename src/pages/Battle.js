@@ -111,7 +111,7 @@ export default function Battle() {
           } else if (outcome === '성공') {
             p.attackSuccessMap[target] = (p.attackSuccessMap[target] || 0) + 1;
             zombieHitCounts[target] = (zombieHitCounts[target] || 0) + 1;
-            if (p.attackSuccessMap[target] >= 3 && !knockedOutZombies.includes(target)) {
+            if (p.attackSuccessMap[target] >= 2 && !knockedOutZombies.includes(target)) {
               knockedOutZombies.push(target);
               p.isKnockedOut = true;
               logs.push(`🧟 좀비 ${target}이 쓰러졌다!`);
