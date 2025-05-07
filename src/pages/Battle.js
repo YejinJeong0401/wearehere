@@ -65,96 +65,80 @@ export default function Battle() {
     }));
   };
 
- // 중간 생략 (import, useState 등은 동일)
-
   const rollAllDice = (battleId) => {
-  setBattles(battles.map(b => {
-    if (b.id !== battleId) return b;
+    setBattles(battles.map(b => {
+      if (b.id !== battleId) return b;
 
-    const logs = [`🔁 ${b.turn} 턴 시작`, ...b.logs, '⚔ 참가자 턴'];
-    const updated = b.participants.map(p => ({ ...p }));
-    const zombieHitCounts = { ...b.zombieHitCounts };
-    const knockedOutZombies = [...b.knockedOutZombies];
+      const logs = [`🔁 ${b.turn} 턴 시작`, ...b.logs, '⚔ 참가자 턴'];
+      const updated = b.participants.map(p => ({ ...p }));
 
-    updated.forEach((p) => {
-      if (!p.selectedChar || p.isKnockedOut || p.isDisabled) return;
+      updated.forEach((p) => {
+        if (!p.selectedChar || p.isKnockedOut || p.isDisabled) return;
 
-      const statIndex =
-        p.action === '공격' ? 0 :
-        p.action === '회피' ? 1 :
-        p.action === '특기' ? 4 : 0;
+        const statIndex =
+          p.action === '공격' ? 0 :
+          p.action === '회피' ? 1 :
+          p.action === '특기' ? 4 : 0;
 
-      const statValue = p.selectedChar.stats[statIndex];
-      const { dice, outcome } = rollDice(statValue, p.action);
-      let resultText = `[${dice}/${outcome}]`;
+        const statValue = p.selectedChar.stats[statIndex];
+        const { dice, outcome } = rollDice(statValue, p.action);
+        let resultText = `[${dice}/${outcome}]`;
 
-      if (p.action === '공격') {
-        const target = p.targetZombie;
-        p.result = `${p.selectedChar.name} 공격 ${resultText} → 좀비 ${target}`;
+        if (p.action === '공격') {
+          const target = p.targetZombie;
+          p.result = `${p.selectedChar.name} 공격 ${resultText} → 좀비 ${target}`;
 
-        // 안전한 복사
-        const successMap = { ...p.attackSuccessMap };
-        if (outcome === '대성공') {
-          successMap[target] = (successMap[target] || 0) + 2;
-        } else if (outcome === '성공') {
-          successMap[target] = (successMap[target] || 0) + 1;
-        }
-
-        // 누적 저장
-        p.attackSuccessMap = successMap;
-        zombieHitCounts[target] = (zombieHitCounts[target] || 0) + (outcome === '대성공' ? 2 : outcome === '성공' ? 1 : 0);
-
-        if (successMap[target] >= 2 && !knockedOutZombies.includes(target)) {
-          knockedOutZombies.push(target);
-          logs.push(`🧟 좀비 ${target}이 쓰러졌다!`);
-        }
-
-      } else if (p.action === '회피') {
-        p.result = `${p.selectedChar.name} 회피 ${resultText}`;
-        if (outcome === '실패' || outcome === '대실패') {
-          const injury = Math.floor(Math.random() * 3) + 1;
-          p.stack += injury;
-          const luck = p.selectedChar.stats[3];
-          const { outcome: luckOutcome } = rollDice(luck, '행운');
-          const isBitten = luckOutcome === '실패' || luckOutcome === '대실패';
-
-          if (isBitten) {
-            const part = getRandomParts();
-            logs.push(`☠️ ${p.selectedChar.name} 회피 실패 + 행운 실패로 물림 판정! [${part}] (부상 +${injury})`);
-          } else {
-            logs.push(`⚠️ ${p.selectedChar.name} 회피 실패 → 행운 성공, 물림 회피! (부상 +${injury})`);
+          const successMap = { ...p.attackSuccessMap };
+          if (outcome === '대성공') {
+            successMap[target] = (successMap[target] || 0) + 2;
+          } else if (outcome === '성공') {
+            successMap[target] = (successMap[target] || 0) + 1;
           }
-        } else {
-          p.stack = 0;
+
+          p.attackSuccessMap = successMap;
+
+        } else if (p.action === '회피') {
+          p.result = `${p.selectedChar.name} 회피 ${resultText}`;
+          if (outcome === '실패' || outcome === '대실패') {
+            const injury = Math.floor(Math.random() * 3) + 1;
+            p.stack += injury;
+            const luck = p.selectedChar.stats[3];
+            const { outcome: luckOutcome } = rollDice(luck, '행운');
+            const isBitten = luckOutcome === '실패' || luckOutcome === '대실패';
+
+            if (isBitten) {
+              const part = getRandomParts();
+              logs.push(`☠️ ${p.selectedChar.name} 회피 실패 + 행운 실패로 물림 판정! [${part}] (부상 +${injury})`);
+            } else {
+              logs.push(`⚠️ ${p.selectedChar.name} 회피 실패 → 행운 성공, 물림 회피! (부상 +${injury})`);
+            }
+          } else {
+            p.stack = 0;
+          }
+
+        } else if (p.action === '특기') {
+          p.result = `${p.selectedChar.name} 특기 판정 ${resultText}`;
+        } else if (p.action === '휴식') {
+          p.result = `${p.selectedChar.name}은 휴식 중이다.`;
         }
 
-      } else if (p.action === '특기') {
-        p.result = `${p.selectedChar.name} 특기 판정 ${resultText}`;
-      } else if (p.action === '휴식') {
-        p.result = `${p.selectedChar.name}은 휴식 중이다.`;
-      }
+        logs.push(p.result);
+      });
 
-      logs.push(p.result);
-    });
+      updated.forEach((p) => {
+        if (p.action === '공격' && p.selectedChar) {
+          logs.push(`🔎 ${p.selectedChar.name}은 이번 턴에 좀비 ${p.targetZombie}을 노렸다.`);
+        }
+      });
 
-    // 직전 턴에 공격자가 어떤 좀비를 노렸는지 표시
-    updated.forEach((p) => {
-      if (p.action === '공격' && p.selectedChar) {
-        logs.push(`🔎 ${p.selectedChar.name}은 이번 턴에 좀비 ${p.targetZombie}을 노렸다.`);
-      }
-    });
-
-    return {
-      ...b,
-      participants: updated,
-      logs,
-      zombieHitCounts,
-      knockedOutZombies,
-      turn: b.turn + 1,
-    };
-  }));
-};
-
+      return {
+        ...b,
+        participants: updated,
+        logs,
+        turn: b.turn + 1,
+      };
+    }));
+  };
 
   const handleZombieCountChange = (battleId, count) => {
     setBattles(battles.map(b =>
@@ -177,7 +161,7 @@ export default function Battle() {
       newHitCounts[zombieId] = (newHitCounts[zombieId] || 0) + 1;
 
       const newKnocked = [...b.knockedOutZombies];
-      if (newHitCounts[zombieId] >= 2 && !newKnocked.includes(zombieId)) {
+      if (newHitCounts[zombieId] >= 3 && !newKnocked.includes(zombieId)) {
         newKnocked.push(zombieId);
       }
 
